@@ -3,7 +3,7 @@
 
 
 # project-sln
-> 
+> Project structure organizer.
 
 
 ## Contribution
