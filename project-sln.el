@@ -90,6 +90,7 @@
 
 (defun project-sln--new-cache ()
   "First time create cache, this may take a while."
+  ;; TODO: ff-find-files
   )
 
 (defun project-sln-evaluate-project ()
