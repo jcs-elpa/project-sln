@@ -7,7 +7,7 @@
 ;; Description: Project structure organizer.
 ;; Keyword: project structure organize
 ;; Version: 0.0.1
-;; Package-Requires: ((emacs "24.4") (parse-it "0.0.1"))
+;; Package-Requires: ((emacs "24.4") (parse-it "0.0.1") (f "0.20.0"))
 ;; URL: https://github.com/jcs090218/project-sln
 
 ;; This file is NOT part of GNU Emacs.
@@ -31,6 +31,8 @@
 ;;
 
 ;;; Code:
+
+(require 'f)
 
 (require 'parse-it)
 
@@ -70,9 +72,13 @@
       (setq index (1+ index)))
     exts))
 
+(defun project-sln--project-dir ()
+  "Return project directory path."
+  (cdr (project-current)))
+
 (defun project-sln--form-cache-file-path ()
   "Form the cache file's file path."
-  (format "%s%s" (cdr (project-current)) project-sln-cache-filename))
+  (format "%s%s" (project-sln--project-dir) project-sln-cache-filename))
 
 (defun project-sln--cache-file-exists-p ()
   "Check if the cache file exists."
@@ -91,6 +97,7 @@
 (defun project-sln--new-cache ()
   "First time create cache, this may take a while."
   ;; TODO: ff-find-files
+  (f-directories (project-sln--project-dir))
   )
 
 (defun project-sln-evaluate-project ()
