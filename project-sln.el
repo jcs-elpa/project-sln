@@ -48,29 +48,54 @@
   :type 'string
   :group 'project-sln)
 
+(defcustom project-sln-ignore-path
+  '("SCCS" "RCS" "CVS" "MCVS" "MTN" "_darcs" "{arch}"
+    ".git" ".src" ".svn" ".hg" ".bzr"
+    ".vs" ".vscode"
+    "bin" "build" "res"
+    "node_modules")
+  "List of path will be ignored."
+  :type 'list
+  :group 'project-sln)
+
 (defconst project-sln-mode-extension
-  '((("c-mode" "c++-mode" "objc-mode") . (".c" ".cpp" ".h" ".hpp" ".hin" ".cin" ".m"))
-    (("csharp-mode") . (".cs"))
-    (("js-mode" "js2-mode" "js3-mode") . (".js"))
-    (("typescript-mode") . (".ts")))
+  '((("c-mode") ("c") (".c" ".h"))
+    (("c++-mode") ("c++") (".c" ".cpp" ".h" ".hpp" ".hin" ".cin"))
+    (("objc-mode") ("objc") (".h" ".m"))
+    (("csharp-mode") ("csharp") (".cs"))
+    (("js-mode" "js2-mode" "js3-mode") ("js") (".js"))
+    (("typescript-mode") ("typescript") (".ts")))
   "List of extension corresponds to major mode.")
+
+(defconst project-sln-cache-template
+  '(("$MODE$" .
+     (("parse-key" . "") ("ext" . ()) ("path" . ()))))
+  "Language section template that will converted to JSON.")
+
+(defvar project-sln--parse-key "" "Currnet language parse key.")
+(defvar project-sln--extensions '() "Currnet language extensions.")
+(defvar project-sln--paths '() "Current language paths.")
 
 
 (defun project-sln--is-contain-list-string (in-list in-str)
   "Check if a string IN-STR contain in any string in the string list IN-LIST."
   (cl-some #'(lambda (lb-sub-str) (string-match-p (regexp-quote lb-sub-str) in-str)) in-list))
 
-(defun project-sln--find-mode-extension ()
-  "Find the current major mode's possible extension."
-  (let ((index 0) (break nil) (mode-ext nil) (modes nil) (exts nil))
+(defun project-sln--form-extension-regexp (ext)
+  "Form EXT's regular expression for file extension checking."
+  (format "\\%s$" ext))
+
+(defun project-sln--indentify-mode-info ()
+  "Find the current major mode's possible extension and parse key."
+  (let ((index 0) (break nil) (mode-ext nil) (modes nil))
     (while (and (< index (length project-sln-mode-extension)) (not break))
       (setq mode-ext (nth index project-sln-mode-extension))
-      (setq modes (car mode-ext))
+      (setq modes (nth 0 mode-ext))
       (when (project-sln--is-contain-list-string modes (symbol-name major-mode))
-        (setq exts (cdr mode-ext))
+        (setq project-sln--parse-key (nth 1 mode-ext))
+        (setq project-sln--extensions (nth 2 mode-ext))
         (setq break t))
-      (setq index (1+ index)))
-    exts))
+      (setq index (1+ index)))))
 
 (defun project-sln--project-dir ()
   "Return project directory path."
@@ -85,23 +110,72 @@
   (and (cdr (project-current))
        (file-directory-p (project-sln--form-cache-file-path))))
 
+(defun project-sln--valid-directories ()
+  "Return the valid directory path by using `project-sln-ignore-path'.
+Only at the project root directory."
+  (let ((dir-lst (f-directories (project-sln--project-dir)))
+        (final-dir-lst '()))
+    (dolist (dir dir-lst)
+      (unless (project-sln--is-contain-list-string project-sln-ignore-path dir)
+        (push dir final-dir-lst)))
+    final-dir-lst))
+
+(defun project-sln--normalize-paths ()
+  "Normalize the path to relative path to project directory."
+  (let ((index 0) (path ""))
+    (while (< index (length project-sln--paths))
+      (setq path (nth index project-sln--paths))
+      (setf (nth index project-sln--paths) (s-replace (project-sln--project-dir) "./" path))
+      (setq index (1+ index)))))
+
+(defun proejct-sln--set-language-template (&optional parse-key mode-name ext path)
+  "Fill up the language template using PARSE-KEY, EXT, MODE-NAME and PATH.
+The language template here indciate variable `project-sln-cache-template'."
+  (unless mode-name (setq mode-name major-mode))
+  (unless parse-key (setq parse-key project-sln--parse-key))
+  (unless ext (setq ext project-sln--extensions))
+  (unless path (setq path project-sln--paths))
+  (let ((cache-template (copy-sequence project-sln-cache-template)))
+    (setf (car (nth 0 cache-template)) mode-name)
+    (setf (cdr (nth 0 (cdr (nth 0 cache-template)))) parse-key)
+    (setf (cdr (nth 1 (cdr (nth 0 cache-template)))) ext)
+    (setf (cdr (nth 2 (cdr (nth 0 cache-template)))) path)
+    cache-template))
+
 (defun project-sln--read-cache ()
   "Read the cache file so the project will know where to go."
   )
 
 (defun project-sln--write-cache ()
   "Write memory buffer to cache."
-  (write-region "Hello World 2" nil (project-sln--form-cache-file-path))
-  )
+  (write-region (json-encode (proejct-sln--set-language-template))
+                nil
+                (project-sln--form-cache-file-path)))
 
 (defun project-sln--new-cache ()
   "First time create cache, this may take a while."
-  ;; TODO: ff-find-files
-  (f-directories (project-sln--project-dir))
-  )
+  (project-sln--indentify-mode-info)
+  (let ((valid-dirs (project-sln--valid-directories)) (formed-ext ""))
+    (dolist (dir valid-dirs)
+      (dolist (ext project-sln--extensions)
+        (setq formed-ext (project-sln--form-extension-regexp ext))
+        (setq project-sln--paths
+              (append (f-files dir
+                               (lambda (dir)
+                                 (string-match-p formed-ext dir))
+                               t))))))
+  (project-sln--normalize-paths)
+  (project-sln--write-cache))
+
+(defun project-sln--init ()
+  "Initialize project sln."
+  (setq project-sln--parse-key "")
+  (setq project-sln--extensions '())
+  (setq project-sln--paths '()))
 
 (defun project-sln-evaluate-project ()
   "Evaluate the whole project into cache."
+  (project-sln--init)
   (if (cdr (project-current))
       (if (project-sln--cache-file-exists-p)
           (project-sln--read-cache)
@@ -112,8 +186,7 @@
 (defun project-sln-goto-definition-at-point ()
   ""
   (interactive)
-  ;;(project-sln-evaluate-project)
-  (message "%s" (project-sln--find-mode-extension))
+  (project-sln-evaluate-project)
   )
 
 
