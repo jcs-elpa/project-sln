@@ -7,7 +7,7 @@
 ;; Description: Project structure organizer.
 ;; Keyword: project structure organize
 ;; Version: 0.0.1
-;; Package-Requires: ((emacs "24.4") (parse-it "0.0.1") (f "0.20.0"))
+;; Package-Requires: ((emacs "25.1") (parse-it "0.0.1") (f "0.20.0"))
 ;; URL: https://github.com/jcs090218/project-sln
 
 ;; This file is NOT part of GNU Emacs.
@@ -128,15 +128,15 @@ Only at the project root directory."
       (setf (nth index project-sln--paths) (s-replace (project-sln--project-dir) "./" path))
       (setq index (1+ index)))))
 
-(defun proejct-sln--set-language-template (&optional parse-key mode-name ext path)
-  "Fill up the language template using PARSE-KEY, EXT, MODE-NAME and PATH.
+(defun project-sln--set-language-template (&optional parse-key mode ext path)
+  "Fill up the language template using PARSE-KEY, EXT, MODE and PATH.
 The language template here indciate variable `project-sln-cache-template'."
-  (unless mode-name (setq mode-name major-mode))
+  (unless mode (setq mode major-mode))
   (unless parse-key (setq parse-key project-sln--parse-key))
   (unless ext (setq ext project-sln--extensions))
   (unless path (setq path project-sln--paths))
   (let ((cache-template (copy-sequence project-sln-cache-template)))
-    (setf (car (nth 0 cache-template)) mode-name)
+    (setf (car (nth 0 cache-template)) mode)
     (setf (cdr (nth 0 (cdr (nth 0 cache-template)))) parse-key)
     (setf (cdr (nth 1 (cdr (nth 0 cache-template)))) ext)
     (setf (cdr (nth 2 (cdr (nth 0 cache-template)))) path)
@@ -148,7 +148,7 @@ The language template here indciate variable `project-sln-cache-template'."
 
 (defun project-sln--write-cache ()
   "Write memory buffer to cache."
-  (write-region (json-encode (proejct-sln--set-language-template))
+  (write-region (json-encode (project-sln--set-language-template))
                 nil
                 (project-sln--form-cache-file-path)))
 
@@ -184,7 +184,7 @@ The language template here indciate variable `project-sln-cache-template'."
 
 ;;;###autoload
 (defun project-sln-goto-definition-at-point ()
-  ""
+  "Goto the definition at current point."
   (interactive)
   (project-sln-evaluate-project)
   )
