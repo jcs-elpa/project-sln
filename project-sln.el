@@ -33,8 +33,10 @@
 ;;; Code:
 
 (require 'f)
-
 (require 'parse-it)
+
+(require 'project-sln-util)
+(require 'project-sln-parse)
 
 
 (defgroup project-sln nil
@@ -59,23 +61,32 @@
   :group 'project-sln)
 
 (defconst project-sln-mode-extension
-  '((("c-mode") ("c") (".c" ".h"))
-    (("c++-mode") ("c++") (".c" ".cpp" ".h" ".hpp" ".hin" ".cin"))
-    (("objc-mode") ("objc") (".h" ".m"))
-    (("csharp-mode") ("csharp") (".cs"))
-    (("js-mode" "js2-mode" "js3-mode") ("js") (".js"))
-    (("typescript-mode") ("typescript") (".ts")))
+  ;; From by => | `major-mode' | `parse-key' | `extensions' |
+  '((("c-mode") "c" (".c" ".h"))
+    (("c++-mode") "c++" (".c" ".cpp" ".h" ".hpp" ".hin" ".cin"))
+    (("objc-mode") "objc" (".h" ".m"))
+    (("csharp-mode") "csharp" (".cs"))
+    (("js-mode" "js2-mode" "js3-mode") "js" (".js"))
+    (("typescript-mode") "typescript" (".ts")))
   "List of extension corresponds to major mode.")
 
 (defconst project-sln-cache-template
   '(("$MODE$" .
-     (("parse-key" . "") ("ext" . ()) ("path" . ()))))
+     (("parse-key" . "") ("ext" . ()) ("keys" . ()))))
   "Language section template that will converted to JSON.")
 
 (defvar project-sln--parse-key "" "Currnet language parse key.")
 (defvar project-sln--extensions '() "Currnet language extensions.")
 (defvar project-sln--paths '() "Current language paths.")
 
+(defvar project-sln--cache '() "Current project cache.")
+
+
+(defun project-sln--read-file (path)
+  "Read a file from PATH."
+  (with-temp-buffer
+    (insert-file-contents path)
+    (buffer-string)))
 
 (defun project-sln--is-contain-list-string (in-list in-str)
   "Check if a string IN-STR contain in any string in the string list IN-LIST."
@@ -92,7 +103,7 @@
       (setq mode-ext (nth index project-sln-mode-extension))
       (setq modes (nth 0 mode-ext))
       (when (project-sln--is-contain-list-string modes (symbol-name major-mode))
-        (setq project-sln--parse-key (nth 1 mode-ext))
+        (setq project-sln--parse-key (make-symbol (nth 1 mode-ext)))
         (setq project-sln--extensions (nth 2 mode-ext))
         (setq break t))
       (setq index (1+ index)))))
@@ -128,6 +139,19 @@ Only at the project root directory."
       (setf (nth index project-sln--paths) (s-replace (project-sln--project-dir) "./" path))
       (setq index (1+ index)))))
 
+(defun project-sln--walk-ast-tree (ast-tree fnc)
+  "Walk through AST-TREE execute FNC."
+  (dolist (node ast-tree)
+    (let ((node-type (car node)) (node-val (cdr node)))
+      (if (listp node-val)
+          (project-sln--walk-ast-tree node-val fnc)
+        (when (equal node-type :value)
+          (funcall fnc node))))))
+
+(defun project-sln--resolve-keywords (ast)
+  "Resolved keyword from AST."
+  (funcall (intern (format "project-sln--resolve-keywords-%s" project-sln--parse-key)) ast))
+
 (defun project-sln--set-language-template (&optional parse-key mode ext path)
   "Fill up the language template using PARSE-KEY, EXT, MODE and PATH.
 The language template here indciate variable `project-sln-cache-template'."
@@ -135,20 +159,27 @@ The language template here indciate variable `project-sln-cache-template'."
   (unless parse-key (setq parse-key project-sln--parse-key))
   (unless ext (setq ext project-sln--extensions))
   (unless path (setq path project-sln--paths))
-  (let ((cache-template (copy-sequence project-sln-cache-template)))
+  (let ((cache-template (copy-sequence project-sln-cache-template))
+        (default-directory (project-sln--project-dir))
+        (keys '()) (parse-result nil))
     (setf (car (nth 0 cache-template)) mode)
     (setf (cdr (nth 0 (cdr (nth 0 cache-template)))) parse-key)
     (setf (cdr (nth 1 (cdr (nth 0 cache-template)))) ext)
-    (setf (cdr (nth 2 (cdr (nth 0 cache-template)))) path)
+    (dolist (fp path)
+      (setq parse-result (parse-it project-sln--parse-key (expand-file-name fp)))
+      (push (cons fp (project-sln--resolve-keywords parse-result)) keys))
+    (setf (cdr (nth 2 (cdr (nth 0 cache-template)))) keys)
     cache-template))
 
 (defun project-sln--read-cache ()
   "Read the cache file so the project will know where to go."
-  )
+  (let ((cache-content (project-sln--read-file (project-sln--form-cache-file-path))))
+    (setq project-sln--cache (json-read-from-string cache-content))))
 
 (defun project-sln--write-cache ()
   "Write memory buffer to cache."
-  (write-region (json-encode (project-sln--set-language-template))
+  (setq project-sln--cache (project-sln--set-language-template))
+  (write-region (json-encode project-sln--cache)
                 nil
                 (project-sln--form-cache-file-path)))
 
@@ -187,6 +218,7 @@ The language template here indciate variable `project-sln-cache-template'."
   "Goto the definition at current point."
   (interactive)
   (project-sln-evaluate-project)
+  (message "cache: %s" project-sln--cache)
   )
 
 
