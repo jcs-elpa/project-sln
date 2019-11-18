@@ -27,10 +27,18 @@
 (require 'project-sln-util)
 
 
+(defconst project-sln--key-var "var"
+  "Id key to represent variable.")
+
+(defconst project-sln--key-fnc "fnc"
+  "Id key to represent function.")
+
+
 (defun project-sln--resolve-keywords-csharp (ast)
   "Resolve keywords in csharp by AST."
   (let ((keys '()) (flag-next-node nil)
         (node-type "") (node-val "") (last-node-val "")
+        (struct-name "")
         (type-name ""))
     (project-sln--walk-ast-tree
      ast
@@ -39,9 +47,11 @@
        (setq node-val (cdr node))
        (if flag-next-node
            (progn
-             (setq keys (project-sln-util--append-val-safe keys last-node-val
-                                                           (cons node-val nil)))
-             (setq type-name last-node-val)
+             (setq struct-name last-node-val)
+             (setq keys (project-sln-util--add-json-val keys
+                                                        (list struct-name)
+                                                        (list (cons node-val ()))))
+             (setq type-name node-val)
              (setq flag-next-node nil))
          (cond
           ((project-sln--is-contain-list-string
@@ -49,8 +59,20 @@
             node-val)
            (setq flag-next-node t))
           ((string= "=" node-val)
-           (setq keys (project-sln-util--append-val-safe keys "var" last-node-val))
-           ))
+           (setq keys
+                 (project-sln-util--add-json-val
+                  keys
+                  (list struct-name type-name project-sln--key-var)
+                  (list last-node-val)))
+           )
+          ((string= "(" node-val)
+           (setq keys
+                 (project-sln-util--add-json-val
+                  keys
+                  (list struct-name type-name project-sln--key-fnc)
+                  (list last-node-val)))
+           )
+          )
          (setq last-node-val node-val)
          )))
     keys))
