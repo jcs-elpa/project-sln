@@ -24,30 +24,68 @@
 
 ;;; Code:
 
+(require 'json)
 
-(defun project-sln-util--id-exists-p (lst id)
-  "Check if ID exists in the LST."
-  (let ((found nil) (index 0) (break nil) (prop nil))
-    (while (and (not break) (< index (length lst)))
-      (setq prop (nth index lst))
-      (when (string= (car prop) id)
-        (setq found t))
+
+(defun project-sln-util--read-file (path)
+  "Read a file from PATH."
+  (with-temp-buffer
+    (insert-file-contents path)
+    (buffer-string)))
+
+(defun project-sln-util--is-contain-list-string (in-list in-str)
+  "Check if a string IN-STR contain in any string in the string list IN-LIST."
+  (cl-some #'(lambda (lb-sub-str) (string-match-p (regexp-quote lb-sub-str) in-str)) in-list))
+
+;;; JSON
+
+(defun project-sln-util--get-json-val (json-root ids &optional lvl)
+  "Get JSON value by list of IDS in JSON-ROOT by increment LVL."
+  (unless lvl (setq lvl 0))
+  (let ((index 0) (break nil) (len (length json-root)) (json nil) (val nil)
+        (lvl-id (nth lvl ids))
+        (last-lvl (= (1- (length ids)) lvl)))
+    (while (and (not break) (< index len))
+      (setq json (nth index json-root))
+      (when (string= (car json) lvl-id)
+        (setq break t)
+        (setq lvl (1+ lvl))
+        (setq val (if (and (not last-lvl) (listp (cdr json)))
+                      (project-sln-util--get-json-val (cdr json) ids lvl)
+                    (cdr json))))
       (setq index (1+ index)))
-    found))
+    val))
 
-(defun project-sln-util--append-val (lst id val)
-  "Append VAL to LST by ID."
-  (dolist (prop lst)
-    (when (string= (car prop) id)
-      (setf (cdr prop) (append (cdr prop) val))))
-  lst)
+(defun project-sln-util--set-json-val (json-root ids new-val &optional lvl)
+  "Set JSON value to NEW-VAL by list of IDS in JSON-ROOT by increment LVL."
+  (unless lvl (setq lvl 0))
+  (let ((index 0) (break nil) (len (length json-root)) (json nil)
+        (lvl-id (nth lvl ids))
+        (last-lvl (= (1- (length ids)) lvl)))
+    (while (and (not break) (< index len))
+      (setq json (nth index json-root))
+      (when (string= (car json) lvl-id)
+        (setq break t)
+        (setq lvl (1+ lvl))
+        (setf (cdr json) (if (and (not last-lvl) (listp (cdr json)))
+                             (project-sln-util--set-json-val (cdr json) ids new-val lvl)
+                           new-val)))
+      (setq index (1+ index)))
+    (unless break
+      (if last-lvl
+          (setq json-root (json-add-to-object json-root lvl-id new-val))
+        (setq json-root (json-add-to-object json-root lvl-id ()))
+        (setq json-root (project-sln-util--set-json-val json-root ids new-val lvl))))
+    json-root))
 
-(defun project-sln-util--append-val-safe (lst id val)
-  "Safe way to set VAL corresponds to ID in LST."
-  (if (project-sln-util--id-exists-p lst id)
-      (setq lst (project-sln-util--append-val lst id val))
-    (push (cons id val) lst))
-  lst)
+(defun project-sln-util--add-json-val (json-root ids add-val)
+  "Add ADD-VAL to JSON by list IDS starting from JSON-ROOT."
+  (project-sln-util--set-json-val
+   json-root
+   ids
+   (append
+    (project-sln-util--get-json-val json-root ids)
+    add-val)))
 
 
 (provide 'project-sln-util)
