@@ -48,7 +48,8 @@ indentify the token you need to indentify.
 #### 2. You need to know JSON. Cache file is output in JSON using pure elisp.
 
 You can read [json.el](https://github.com/emacs-mirror/emacs/blob/master/lisp/json.el) 
-built inside Emacs.
+built inside Emacs. If you are confused about the output of JSON format, please 
+check [_json](./json) directory for examples.
 
 
 ## Todo List
