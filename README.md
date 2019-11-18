@@ -9,6 +9,8 @@
 **Table of Contents**
 
 - [project-sln](#project-sln)
+    - [How to further develop for your favorite language?](#how-to-further-develop-for-your-favorite-language)
+    - [Supported Langauges](#supported-langauges)
     - [Todo List](#todo-list)
     - [Contribution](#contribution)
 
@@ -26,11 +28,18 @@ the possible results. This package should generate rule that could highly reliab
 on.
 
 
-## How to contribute to this package?
+## How to further develop for your favorite language?
 
-1. You can open an issue if you find out anything that helps!
-2. If you are willing to make a pull request, there are few things that you might
-want to know.
+If you are willing to implement a programming language for this package.
+
+1. You need a targeted language parser (To identify tokens). I'm currently
+using [parse-it](https://github.com/jcs-elpa/parse-it) and have all the needed
+keys store inside `project-sln-mode-extension` variable. You can use
+any parser you want as long it gives you the AST to indentify the token you 
+need to indentify.
+2. You need to know JSON. Cache file is output in JSON using pure elisp.
+You can read [json.el](https://github.com/emacs-mirror/emacs/blob/master/lisp/json.el) 
+built inside Emacs.
 
 
 ## Supported Langauges
