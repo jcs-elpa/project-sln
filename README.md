@@ -31,7 +31,8 @@ on.
 
 ## Supported Langauges
 
-* C#
+* C# [WIP]
+* HTML/CSS [WIP]
 
 
 ## How to further develop for your favorite language?
