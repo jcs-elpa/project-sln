@@ -82,16 +82,6 @@
 (defvar project-sln--cache '() "Current project cache.")
 
 
-(defun project-sln--read-file (path)
-  "Read a file from PATH."
-  (with-temp-buffer
-    (insert-file-contents path)
-    (buffer-string)))
-
-(defun project-sln--is-contain-list-string (in-list in-str)
-  "Check if a string IN-STR contain in any string in the string list IN-LIST."
-  (cl-some #'(lambda (lb-sub-str) (string-match-p (regexp-quote lb-sub-str) in-str)) in-list))
-
 (defun project-sln--form-extension-regexp (ext)
   "Form EXT's regular expression for file extension checking."
   (format "\\%s$" ext))
@@ -102,7 +92,7 @@
     (while (and (< index (length project-sln-mode-extension)) (not break))
       (setq mode-ext (nth index project-sln-mode-extension))
       (setq modes (nth 0 mode-ext))
-      (when (project-sln--is-contain-list-string modes (symbol-name major-mode))
+      (when (project-sln-util--is-contain-list-string modes (symbol-name major-mode))
         (setq project-sln--parse-key (make-symbol (nth 1 mode-ext)))
         (setq project-sln--extensions (nth 2 mode-ext))
         (setq break t))
@@ -127,7 +117,7 @@ Only at the project root directory."
   (let ((dir-lst (f-directories (project-sln--project-dir)))
         (final-dir-lst '()))
     (dolist (dir dir-lst)
-      (unless (project-sln--is-contain-list-string project-sln-ignore-path dir)
+      (unless (project-sln-util--is-contain-list-string project-sln-ignore-path dir)
         (push dir final-dir-lst)))
     final-dir-lst))
 
@@ -173,7 +163,7 @@ The language template here indciate variable `project-sln-cache-template'."
 
 (defun project-sln--read-cache ()
   "Read the cache file so the project will know where to go."
-  (let ((cache-content (project-sln--read-file (project-sln--form-cache-file-path))))
+  (let ((cache-content (project-sln-util--read-file (project-sln--form-cache-file-path))))
     (setq project-sln--cache (json-read-from-string cache-content))))
 
 (defun project-sln--write-cache ()
