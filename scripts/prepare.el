@@ -23,6 +23,9 @@
 ;; --------------------------------------------------------------------------
 ;; Start testing..
 
+;; NOTE: Add load path for project/package root.
+(add-to-list 'load-path (expand-file-name "../"))
+
 (let* ((project-path (expand-file-name "../../parse-it/"))
        (dirs (f-directories project-path))
        (final-list (append (list project-path) dirs)))
