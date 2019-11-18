@@ -24,29 +24,35 @@
 
 ;;; Code:
 
-(require 'project-sln)
 (require 'project-sln-util)
 
 
 (defun project-sln--resolve-keywords-csharp (ast)
   "Resolve keywords in csharp by AST."
-  (let ((keys '()) (flag nil) (node-type "") (node-val "") (last-node-val ""))
+  (let ((keys '()) (flag-next-node nil)
+        (node-type "") (node-val "") (last-node-val "")
+        (type-name ""))
     (project-sln--walk-ast-tree
      ast
      (lambda (node)
        (setq node-type (car node))
        (setq node-val (cdr node))
-       (if flag
+       (if flag-next-node
            (progn
-             (if (project-sln-util--id-exists-p keys last-node-val)
-                 (setq keys (project-sln-util--append-val keys last-node-val (list node-val)))
-               (push (cons last-node-val (list node-val)) keys))
-             (setq flag nil))
-         (when (project-sln--is-contain-list-string
-                '("class" "struct")
-                node-val)
-           (setq last-node-val node-val)
-           (setq flag t)))))
+             (setq keys (project-sln-util--append-val-safe keys last-node-val
+                                                           (cons node-val nil)))
+             (setq type-name last-node-val)
+             (setq flag-next-node nil))
+         (cond
+          ((project-sln--is-contain-list-string
+            '("class" "struct")
+            node-val)
+           (setq flag-next-node t))
+          ((string= "=" node-val)
+           (setq keys (project-sln-util--append-val-safe keys "var" last-node-val))
+           ))
+         (setq last-node-val node-val)
+         )))
     keys))
 
 

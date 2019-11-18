@@ -39,8 +39,14 @@
   "Append VAL to LST by ID."
   (dolist (prop lst)
     (when (string= (car prop) id)
-      (message "val: %s" val)
       (setf (cdr prop) (append (cdr prop) val))))
+  lst)
+
+(defun project-sln-util--append-val-safe (lst id val)
+  "Safe way to set VAL corresponds to ID in LST."
+  (if (project-sln-util--id-exists-p lst id)
+      (setq lst (project-sln-util--append-val lst id val))
+    (push (cons id val) lst))
   lst)
 
 
