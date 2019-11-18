@@ -52,6 +52,16 @@ built inside Emacs. If you are confused about the output of JSON format, please
 check [_json](./_json/) directory for examples.
 
 
+#### 3. Knowing the project/package structure.
+
+There are three core files in this package. Please consider your implementation's
+location.
+
+1. `project-sln.el` - Read/Write IO for cache file.
+1. `project-sln-parse.el` - Parse source file and gives correct info.
+1. `project-sln-util.el` - Other helper functions.
+
+
 ## Todo List
 
 - [ ] Reliable code navigation.
