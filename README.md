@@ -2,9 +2,6 @@
 [![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
 
-# project-sln
-> Project structure organizer.
-
 <!-- markdown-toc start - Don't edit this section. Run M-x markdown-toc-refresh-toc -->
 **Table of Contents**
 
@@ -15,6 +12,10 @@
     - [Contribution](#contribution)
 
 <!-- markdown-toc end -->
+
+
+# project-sln
+> Project structure organizer.
 
 The goal of this package is to generate project cache file that holds information
 of the current project. Using this cache file can do the following.
