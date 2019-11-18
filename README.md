@@ -14,31 +14,36 @@
 
 <!-- markdown-toc end -->
 
-The goal of this package is to generate project cache file that holds information 
+The goal of this package is to generate project cache file that holds information
 of the current project. Using this cache file can do the following.
 
 * Code Navigation
 * Auto completion
 * Tooltip
 
-This package does not rely on any Tag System or Any Searcher that gives you all 
-the possible results. This package should generate rule that could highly reliable 
+This package does not rely on any Tag System or Any Searcher that gives you all
+the possible results. This package should generate rule that could highly reliable
 on.
 
 
 ## How to contribute to this package?
 
 1. You can open an issue if you find out anything that helps!
-2. If you are willing to make a pull request, there are few things that you might 
+2. If you are willing to make a pull request, there are few things that you might
 want to know.
+
+
+## Supported Langauges
+
+* C#
 
 
 ## Todo List
 
-- [] Reliable code navigation.
-- [] `company-sln` or `company-project-sln`, a company plugin that uses
+- [ ] Reliable code navigation.
+- [ ] `company-sln` or `company-project-sln`, a company plugin that uses
 this plugin to do auto-completion.
-- [] Support as much programming languages as possible.
+- [ ] Support as much programming languages as possible.
 
 
 ## Contribution
