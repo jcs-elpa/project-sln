@@ -54,7 +54,7 @@
              (setq type-name node-val)
              (setq flag-next-node nil))
          (cond
-          ((project-sln--is-contain-list-string
+          ((project-sln-util--is-contain-list-string
             '("class" "struct")
             node-val)
            (setq flag-next-node t))
