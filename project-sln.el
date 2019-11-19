@@ -45,7 +45,7 @@
   :group 'tool
   :link '(url-link :tag "Github" "https://github.com/jcs090218/project-sln"))
 
-(defcustom project-sln-cache-filename "project-cache"
+(defcustom project-sln-cache-filename "project-cache.json"
   "Name of the cache file."
   :type 'string
   :group 'project-sln)
@@ -129,14 +129,28 @@ Only at the project root directory."
       (setf (nth index project-sln--paths) (s-replace (project-sln--project-dir) "./" path))
       (setq index (1+ index)))))
 
+(defun project-sln--valid-node-type-p (node-type)
+  "Check if NODE-TYPE valid node type."
+  (or (equal node-type :node-type)
+      (equal node-type :value)
+      (equal node-type :position)
+      (equal node-type :children)))
+
 (defun project-sln--walk-ast-tree (ast-tree fnc)
   "Walk through AST-TREE execute FNC."
   (dolist (node ast-tree)
-    (let ((node-type (car node)) (node-val (cdr node)))
-      (if (listp node-val)
-          (project-sln--walk-ast-tree node-val fnc)
-        (when (equal node-type :value)
-          (funcall fnc node))))))
+    (let ((node-type (car node)) (node-val (cdr node)) (valid-nt nil))
+      (when node-val
+        (if (listp node-val)
+            (progn
+              (setq valid-nt (project-sln--valid-node-type-p node-type))
+              (when valid-nt
+                (project-sln-parse--inc/dec-nested-level 1))
+              (project-sln--walk-ast-tree (if valid-nt node-val node) fnc)
+              (when valid-nt
+                (project-sln-parse--inc/dec-nested-level -1)))
+          (when (equal node-type :value)
+            (funcall fnc node)))))))
 
 (defun project-sln--resolve-keywords (ast)
   "Resolved keyword from AST."
