@@ -1,4 +1,4 @@
-;;; project-sln-parse.el --- Parse for each language.  -*- lexical-binding: t; -*-
+;;; project-sln-parse.el --- Parse for each language  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2019  Shen, Jen-Chieh <jcs090218@gmail.com>
 
