@@ -1,4 +1,4 @@
-;;; project-sln.el --- Project structure organizer.  -*- lexical-binding: t; -*-
+;;; project-sln.el --- Project structure organizer  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2019  Shen, Jen-Chieh
 ;; Created date 2019-11-10 21:03:32
@@ -7,7 +7,7 @@
 ;; Description: Project structure organizer.
 ;; Keyword: project structure organize
 ;; Version: 0.0.1
-;; Package-Requires: ((emacs "25.1") (parse-it "0.0.1") (f "0.20.0"))
+;; Package-Requires: ((emacs "25.1") (parse-it "0.1.7") (f "0.20.0"))
 ;; URL: https://github.com/jcs090218/project-sln
 
 ;; This file is NOT part of GNU Emacs.
