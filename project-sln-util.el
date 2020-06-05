@@ -1,4 +1,4 @@
-;;; project-sln-util.el --- Util class.  -*- lexical-binding: t; -*-
+;;; project-sln-util.el --- Util class  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2019  Shen, Jen-Chieh <jcs090218@gmail.com>
 
