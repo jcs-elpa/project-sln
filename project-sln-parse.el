@@ -101,8 +101,7 @@ Return nil, if nested level has not changed."
                 (list struct-name type-name project-sln-parse--key-fnc)
                 (list last-node-val)))))
        (setq last-node-type node-type)
-       (setq last-node-val node-val)
-       ))
+       (setq last-node-val node-val)))
     keys))
 
 
