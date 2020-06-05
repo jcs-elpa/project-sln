@@ -37,6 +37,14 @@
   "Check if a string IN-STR contain in any string in the string list IN-LIST."
   (cl-some #'(lambda (lb-sub-str) (string-match-p (regexp-quote lb-sub-str) in-str)) in-list))
 
+(defun project-sln-util--flatten-list (l)
+  "Flatten the multiple dimensional array, L to one dimensonal array.
+For instance,
+  '(1 2 3 4 (5 6 7 8)) => '(1 2 3 4 5 6 7 8)."
+  (cond ((null l) nil)
+        ((atom l) (list l))
+        (t (loop for a in l appending (jcs-flatten-list a)))))
+
 ;;; JSON
 
 (defun project-sln-util--get-json-val (json-root ids &optional lvl)
