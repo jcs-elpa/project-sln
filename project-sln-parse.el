@@ -64,47 +64,45 @@ Return nil, if nested level has not changed."
 
 (defun project-sln--resolve-keywords-csharp (ast)
   "Resolve keywords in csharp by AST."
-  (let ((keys '()) (flag-next-node nil)
-        (level-changed nil)  ; Flag to check if nested level changed.
-        (node-type "") (node-val "") (last-node-val "")
+  (let ((keys '())
+        (level-changed-p nil)  ; Flag to check if nested level changed.
+        (node-type "") (node-val "")  (last-node-type "") (last-node-val "")
+        (struct-defined-p nil)
         (struct-name "")
         (type-name ""))
     (project-sln--walk-ast-tree
      ast
      (lambda (node)
-       (setq level-changed (project-sln-parse--nested-level-changed))
+       (setq level-changed-p (project-sln-parse--nested-level-changed))
        (setq node-type (car node))
        (setq node-val (cdr node))
-       (if flag-next-node
-           (progn
-             (setq struct-name last-node-val)
-             (setq keys (project-sln-util--add-json-val keys
-                                                        (list struct-name)
-                                                        (list (cons node-val ()))))
-             (setq type-name node-val)
-             (setq flag-next-node nil))
-         (cond
-          ((project-sln-util--is-contain-list-string
-            '("class" "struct")
-            node-val)
-           (setq flag-next-node t))
-          ((string= "=" node-val)
-           (setq keys
-                 (project-sln-util--add-json-val
-                  keys
-                  (list struct-name type-name project-sln-parse--key-var)
-                  (list last-node-val)))
-           )
-          ((string= "(" node-val)
-           (setq keys
-                 (project-sln-util--add-json-val
-                  keys
-                  (list struct-name type-name project-sln-parse--key-fnc)
-                  (list last-node-val)))
-           )
-          )
-         (setq last-node-val node-val)
-         )))
+       (cond
+        ((and struct-defined-p
+              (project-sln-util--is-contain-list-string '("{" ":") node-val))
+         (setq type-name last-node-val)
+         (setq keys (project-sln-util--add-json-val keys
+                                                    (list struct-name)
+                                                    (list (cons type-name ()))))
+         (setq struct-defined-p nil))
+        ((project-sln-util--is-contain-list-string '("class" "struct") node-val)
+         (setq struct-defined-p t)
+         (setq struct-name node-val))
+        ((and (string-match-p "[=,)]" node-val)
+              (not (string-match-p "[(]" last-node-val)))
+         (setq keys
+               (project-sln-util--add-json-val
+                keys
+                (list struct-name type-name project-sln-parse--key-var)
+                (list last-node-val))))
+        ((string-match-p "[(]" node-val)
+         (setq keys
+               (project-sln-util--add-json-val
+                keys
+                (list struct-name type-name project-sln-parse--key-fnc)
+                (list last-node-val)))))
+       (setq last-node-type node-type)
+       (setq last-node-val node-val)
+       ))
     keys))
 
 
