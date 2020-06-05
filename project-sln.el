@@ -7,7 +7,7 @@
 ;; Description: Project structure organizer.
 ;; Keyword: project structure organize
 ;; Version: 0.0.1
-;; Package-Requires: ((emacs "25.1") (parse-it "0.0.1") (f "0.20.0"))
+;; Package-Requires: ((emacs "25.1") (parse-it "0.0.1") (cl-lib "0.6") (f "0.20.0"))
 ;; URL: https://github.com/jcs090218/project-sln
 
 ;; This file is NOT part of GNU Emacs.
@@ -32,6 +32,7 @@
 
 ;;; Code:
 
+(require 'cl-lib)
 (require 'f)
 (require 'parse-it)
 
@@ -50,7 +51,7 @@
   :type 'string
   :group 'project-sln)
 
-(defcustom project-sln-ignore-path
+(defcustom project-sln-ignore-paths
   '("SCCS" "RCS" "CVS" "MCVS" "MTN" "_darcs" "{arch}"
     ".git" ".src" ".svn" ".hg" ".bzr"
     ".vs" ".vscode"
@@ -108,18 +109,36 @@
 
 (defun project-sln--cache-file-exists-p ()
   "Check if the cache file exists."
-  (and (cdr (project-current))
+  (and (project-sln--project-dir)
        (file-directory-p (project-sln--form-cache-file-path))))
 
-(defun project-sln--valid-directories ()
-  "Return the valid directory path by using `project-sln-ignore-path'.
-Only at the project root directory."
-  (let ((dir-lst (f-directories (project-sln--project-dir)))
-        (final-dir-lst '()))
-    (dolist (dir dir-lst)
-      (unless (project-sln-util--is-contain-list-string project-sln-ignore-path dir)
-        (push dir final-dir-lst)))
-    final-dir-lst))
+(defun project-sln--f-directories-ignore-directories (path &optional rec)
+  "Find all directories in PATH by ignored common directories with FN and REC."
+  (let ((dirs (f-directories path))
+        (valid-dirs '())
+        (final-dirs '())
+        (ignore-lst (append grep-find-ignored-directories
+                            project-sln-ignore-paths
+                            (if (boundp 'projectile-globally-ignored-directories)
+                                projectile-globally-ignored-directories
+                              '()))))
+    (dolist (dir dirs)
+      (unless (isearch-project--is-contain-list-string ignore-lst dir)
+        (push dir valid-dirs)))
+    (when rec
+      (dolist (dir valid-dirs)
+        (push (isearch-project--f-directories-ignore-directories dir rec) final-dirs)))
+    (setq valid-dirs (reverse valid-dirs))
+    (setq final-dirs (reverse final-dirs))
+    (project-sln-util--flatten-list (append valid-dirs final-dirs))))
+
+(defun project-sln--f-files-ignore-directories (path &optional fn rec)
+  "Find all files in PATH by ignored common directories with FN and REC."
+  (let ((dirs (append (list path) (isearch-project--f-directories-ignore-directories path rec)))
+        (files '()))
+    (dolist (dir dirs)
+      (push (f-files dir fn) files))
+    (project-sln-util--flatten-list (reverse files))))
 
 (defun project-sln--normalize-paths ()
   "Normalize the path to relative path to project directory."
@@ -190,15 +209,11 @@ The language template here indciate variable `project-sln-cache-template'."
 (defun project-sln--new-cache ()
   "First time create cache, this may take a while."
   (project-sln--indentify-mode-info)
-  (let ((valid-dirs (project-sln--valid-directories)) (formed-ext ""))
-    (dolist (dir valid-dirs)
-      (dolist (ext project-sln--extensions)
-        (setq formed-ext (project-sln--form-extension-regexp ext))
-        (setq project-sln--paths
-              (append (f-files dir
-                               (lambda (dir)
-                                 (string-match-p formed-ext dir))
-                               t))))))
+  (setq project-sln--paths (project-sln--f-files-ignore-directories
+                            (project-sln--project-dir)
+                            (lambda (fp)
+                              (project-sln-util--is-contain-list-string project-sln--extensions fp))
+                            t))
   (project-sln--normalize-paths)
   (project-sln--write-cache))
 
@@ -211,7 +226,7 @@ The language template here indciate variable `project-sln-cache-template'."
 (defun project-sln-evaluate-project ()
   "Evaluate the whole project into cache."
   (project-sln--init)
-  (if (cdr (project-current))
+  (if (project-sln--project-dir)
       (if (project-sln--cache-file-exists-p)
           (project-sln--read-cache)
         (project-sln--new-cache))
