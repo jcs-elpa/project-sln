@@ -51,7 +51,7 @@ The current nested level is store inside `project-sln-parse--nested-level' varia
   (unless record-val (setq record-val project-sln-parse--recorded-nested-level))
   (= record-val project-sln-parse--nested-level))
 
-(defun project-sln-parse--nested-level-changed ()
+(defun project-sln-parse--nested-level-changed-p ()
   "This should be call every time we trying to execute a node from AST.
 Return non-nil, if nested level changed.
 Return nil, if nested level has not changed."
@@ -61,47 +61,93 @@ Return nil, if nested level has not changed."
     (setq project-sln-parse--recorded-nested-level project-sln-parse--nested-level)
     t))
 
+(defun project-sln-parse--defined-info (type pos)
+  "Form the definition info data structure.
+TYPE: type of the data.
+POS: defined position."
+  (list type pos))
 
-(defun project-sln--resolve-keywords-csharp (ast)
+(defun project-sln--search-node-history (history-nodes offset &optional type)
+  "Search the HISTORY-NODES base on OFFSET.
+TYPE can be :value or :position, otherwise will return a list of information."
+  (let ((node (nth offset history-nodes)))
+    (cl-case type
+      (:value (nth 0 node))
+      (:position (nth 1 node))
+      (t node))))
+
+
+(defun project-sln-parse--resolve-keywords-csharp (ast)
   "Resolve keywords in csharp by AST."
+  (setq project-sln-parse--nested-level 0)
+  (setq project-sln-parse--recorded-nested-level 0)
   (let ((keys '())
         (level-changed-p nil)  ; Flag to check if nested level changed.
-        (node-type "") (node-val "")  (last-node-type "") (last-node-val "")
+        (level-changed 0)  ; Nested level changed in number.
+        (node-val "") (history-nodes '())
+        (hist-1-v "") (hist-2-v "") (hist-3-v "") (hist-4-v "") (hist-5-v "")
+        (hist-1-p "") (hist-2-p "") (hist-3-p "") (hist-4-p "") (hist-5-p "")
         (struct-defined-p nil)
-        (struct-name "")
-        (type-name ""))
+        (stack-struct-names '("global"))  ; The stack of `struct`/`class` definition.
+        (stack-def-names '())
+        (struct-name "global")  ; Either be `struct` or `class, etc.
+        (def-name "")  ; Name of the function, variable, class name, etc.
+        (pos -1))
     (project-sln--walk-ast-tree
      ast
-     (lambda (node)
-       (setq level-changed-p (project-sln-parse--nested-level-changed))
-       (setq node-type (car node))
-       (setq node-val (cdr node))
+     (lambda (node next-node)
+       (setq level-changed (- project-sln-parse--nested-level project-sln-parse--recorded-nested-level))
+       (setq level-changed-p (project-sln-parse--nested-level-changed-p))
+       (progn  ; Get node information.
+         (setq node-val (cdr node))
+         (setq pos (cdr next-node)))
+       (push (list node-val pos) history-nodes)  ; Add to history
+       (progn  ; Get recent history.
+         ;; Value
+         (setq hist-1-v (project-sln--search-node-history history-nodes 1 :value))
+         (setq hist-2-v (project-sln--search-node-history history-nodes 2 :value))
+         (setq hist-3-v (project-sln--search-node-history history-nodes 3 :value))
+         (setq hist-4-v (project-sln--search-node-history history-nodes 4 :value))
+         (setq hist-5-v (project-sln--search-node-history history-nodes 5 :value))
+         ;; Position
+         (setq hist-1-p (project-sln--search-node-history history-nodes 1 :position))
+         (setq hist-2-p (project-sln--search-node-history history-nodes 2 :position))
+         (setq hist-3-p (project-sln--search-node-history history-nodes 3 :position))
+         (setq hist-4-p (project-sln--search-node-history history-nodes 4 :position))
+         (setq hist-5-p (project-sln--search-node-history history-nodes 5 :position)))
+       (progn  ; Ensure struct name.
+         (when (= project-sln-parse--nested-level (length stack-struct-names))
+           (pop stack-struct-names)
+           (pop stack-def-names))
+         (setq struct-name (nth 0 stack-struct-names))
+         (setq def-name (nth 0 stack-def-names)))
        (cond
         ((and struct-defined-p
               (project-sln-util--is-contain-list-string '("{" ":") node-val))
-         (setq type-name last-node-val)
+         (setq def-name hist-1-v)
+         (push def-name stack-def-names)
          (setq keys (project-sln-util--add-json-val keys
                                                     (list struct-name)
-                                                    (list (cons type-name ()))))
+                                                    (list (cons def-name ()))))
          (setq struct-defined-p nil))
         ((project-sln-util--is-contain-list-string '("class" "struct") node-val)
          (setq struct-defined-p t)
-         (setq struct-name node-val))
+         (push node-val stack-struct-names))
         ((and (string-match-p "[=,)]" node-val)
-              (not (string-match-p "[(]" last-node-val)))
+              (not (string-match-p "[(]" hist-1-v)))
          (setq keys
                (project-sln-util--add-json-val
                 keys
-                (list struct-name type-name project-sln-parse--key-var)
-                (list last-node-val))))
+                (list struct-name def-name project-sln-parse--key-var)
+                (list (cons hist-1-v
+                            (project-sln-parse--defined-info hist-2-v hist-1-p))))))
         ((string-match-p "[(]" node-val)
          (setq keys
                (project-sln-util--add-json-val
                 keys
-                (list struct-name type-name project-sln-parse--key-fnc)
-                (list last-node-val)))))
-       (setq last-node-type node-type)
-       (setq last-node-val node-val)))
+                (list struct-name def-name project-sln-parse--key-fnc)
+                (list (cons hist-1-v
+                            (project-sln-parse--defined-info hist-2-v hist-1-p)))))))))
     keys))
 
 
