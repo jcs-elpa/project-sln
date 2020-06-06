@@ -123,18 +123,18 @@
                                 projectile-globally-ignored-directories
                               '()))))
     (dolist (dir dirs)
-      (unless (isearch-project--is-contain-list-string ignore-lst dir)
+      (unless (project-sln-util--is-contain-list-string ignore-lst dir)
         (push dir valid-dirs)))
     (when rec
       (dolist (dir valid-dirs)
-        (push (isearch-project--f-directories-ignore-directories dir rec) final-dirs)))
+        (push (project-sln--f-directories-ignore-directories dir rec) final-dirs)))
     (setq valid-dirs (reverse valid-dirs))
     (setq final-dirs (reverse final-dirs))
     (project-sln-util--flatten-list (append valid-dirs final-dirs))))
 
 (defun project-sln--f-files-ignore-directories (path &optional fn rec)
   "Find all files in PATH by ignored common directories with FN and REC."
-  (let ((dirs (append (list path) (isearch-project--f-directories-ignore-directories path rec)))
+  (let ((dirs (append (list path) (project-sln--f-directories-ignore-directories path rec)))
         (files '()))
     (dolist (dir dirs)
       (push (f-files dir fn) files))
@@ -157,23 +157,27 @@
 
 (defun project-sln--walk-ast-tree (ast-tree fnc)
   "Walk through AST-TREE execute FNC."
-  (dolist (node ast-tree)
-    (let ((node-type (car node)) (node-val (cdr node)) (valid-nt nil))
-      (when node-val
-        (if (listp node-val)
-            (progn
-              (setq valid-nt (project-sln--valid-node-type-p node-type))
-              (when valid-nt
-                (project-sln-parse--inc/dec-nested-level 1))
-              (project-sln--walk-ast-tree (if valid-nt node-val node) fnc)
-              (when valid-nt
-                (project-sln-parse--inc/dec-nested-level -1)))
-          (when (equal node-type :value)
-            (funcall fnc node)))))))
+  (let ((index 0) (node nil) (next-node nil))
+    (while (< index (length ast-tree))
+      (setq node (nth index ast-tree))
+      (let ((node-type (car node)) (node-val (cdr node)) (valid-nt nil))
+        (when node-val
+          (if (listp node-val)
+              (progn
+                (setq valid-nt (project-sln--valid-node-type-p node-type))
+                (when valid-nt
+                  (project-sln-parse--inc/dec-nested-level 1))
+                (project-sln--walk-ast-tree (if valid-nt node-val node) fnc)
+                (when valid-nt
+                  (project-sln-parse--inc/dec-nested-level -1)))
+            (when (equal node-type :value)
+              (setq next-node (nth (1+ index) ast-tree))  ; get position
+              (funcall fnc node next-node)))))
+      (setq index (1+ index)))))
 
 (defun project-sln--resolve-keywords (ast)
   "Resolved keyword from AST."
-  (funcall (intern (format "project-sln--resolve-keywords-%s" project-sln--parse-key)) ast))
+  (funcall (intern (format "project-sln-parse--resolve-keywords-%s" project-sln--parse-key)) ast))
 
 (defun project-sln--set-language-template (&optional parse-key mode ext path)
   "Fill up the language template using PARSE-KEY, EXT, MODE and PATH.
