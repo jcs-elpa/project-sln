@@ -50,7 +50,7 @@ indentify the token you need to indentify.
 
 You can read [json.el](https://github.com/emacs-mirror/emacs/blob/master/lisp/json.el)
 built inside Emacs. If you are confused about the output of JSON format, please
-check [_json](./_json/) directory for examples.
+check test project [here](https://github.com/jcs-elpa/project-sln-test) for more information.
 
 
 #### 3. Knowing the project/package structure.
