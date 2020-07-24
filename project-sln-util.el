@@ -26,7 +26,6 @@
 
 (require 'json)
 
-
 (defun project-sln-util--read-file (path)
   "Read a file from PATH."
   (with-temp-buffer
@@ -94,7 +93,6 @@ For instance,
    (append
     (project-sln-util--get-json-val json-root ids)
     add-val)))
-
 
 (provide 'project-sln-util)
 ;;; project-sln-util.el ends here

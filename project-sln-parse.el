@@ -26,7 +26,6 @@
 
 (require 'project-sln-util)
 
-
 (defconst project-sln-parse--key-var "var"
   "Id key to represent variable.")
 
@@ -41,6 +40,7 @@ This is use to identify the nested level to compare with other near nodes around
   "Record down current nested level.
 The current nested level is store inside `project-sln-parse--nested-level' variable.")
 
+;;; Core
 
 (defun project-sln-parse--inc/dec-nested-level (val)
   "Increment/Decrement the parse nested level by VAL."
@@ -75,7 +75,6 @@ TYPE can be :value or :position, otherwise will return a list of information."
       (:value (nth 0 node))
       (:position (nth 1 node))
       (t node))))
-
 
 (defun project-sln-parse--resolve-keywords-csharp (ast)
   "Resolve keywords in csharp by AST."
@@ -149,7 +148,6 @@ TYPE can be :value or :position, otherwise will return a list of information."
                 (list (cons hist-1-v
                             (project-sln-parse--defined-info hist-2-v hist-1-p)))))))))
     keys))
-
 
 (provide 'project-sln-parse)
 ;;; project-sln-parse.el ends here

@@ -39,7 +39,6 @@
 (require 'project-sln-util)
 (require 'project-sln-parse)
 
-
 (defgroup project-sln nil
   "Project structure organizer."
   :prefix "project-sln-"
@@ -82,6 +81,11 @@
 
 (defvar project-sln--cache '() "Current project cache.")
 
+;;; Util
+
+(defun project-sln--project-dir ()
+  "Return project directory path."
+  (cdr (project-current)))
 
 (defun project-sln--form-extension-regexp (ext)
   "Form EXT's regular expression for file extension checking."
@@ -98,10 +102,6 @@
         (setq project-sln--extensions (nth 2 mode-ext))
         (setq break t))
       (setq index (1+ index)))))
-
-(defun project-sln--project-dir ()
-  "Return project directory path."
-  (cdr (project-current)))
 
 (defun project-sln--form-cache-file-path ()
   "Form the cache file's file path."
@@ -147,6 +147,8 @@
       (setq path (nth index project-sln--paths))
       (setf (nth index project-sln--paths) (s-replace (project-sln--project-dir) "./" path))
       (setq index (1+ index)))))
+
+;;; Core
 
 (defun project-sln--valid-node-type-p (node-type)
   "Check if NODE-TYPE valid node type."
@@ -243,7 +245,6 @@ The language template here indciate variable `project-sln-cache-template'."
   (project-sln-evaluate-project)
   (message "cache: %s" project-sln--cache)
   )
-
 
 (provide 'project-sln)
 ;;; project-sln.el ends here
