@@ -8,7 +8,7 @@
 ;; Keyword: project structure organize
 ;; Version: 0.0.1
 ;; Package-Requires: ((emacs "25.1") (parse-it "0.1.7") (cl-lib "0.6") (f "0.20.0"))
-;; URL: https://github.com/jcs090218/project-sln
+;; URL: https://github.com/jcs-elpa/project-sln
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -43,7 +43,7 @@
   "Project structure organizer."
   :prefix "project-sln-"
   :group 'tool
-  :link '(url-link :tag "Github" "https://github.com/jcs090218/project-sln"))
+  :link '(url-link :tag "Github" "https://github.com/jcs-elpa/project-sln"))
 
 (defcustom project-sln-cache-filename "project-cache.json"
   "Name of the cache file."
